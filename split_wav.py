@@ -16,11 +16,10 @@ def pad(n, len=2):
 
 class AsyncPlayer:
 
-	def __init__(self, file, sample_length, bit_depth='Int16'):
+	def __init__(self, file, sample_length, callback, bit_depth='Int16'):
 		
 		self.file = file
-		# self.callback = callback
-		# self.format = format
+
 		if bit_depth == 'Int16':
 			self.format = pyaudio.paInt16
 		else:
@@ -28,6 +27,7 @@ class AsyncPlayer:
 
 		self.sample_length = sample_length
 		self.bit_depth = bit_depth
+		self.callback = callback
 
 	def play(self):
 
@@ -105,37 +105,10 @@ class AsyncPlayer:
 		fname, ext = path.splitext(path.basename(file))
 		f = self._wfile
 		params = f.getparams()
+		cb = self.callback
 
-		while True:
-			count, raw = q.get()
-			data = np.fromstring(raw, bit_depth)
-			data_length = len(data)
-
-			max_freq_range = data_length if data_length > params.framerate else params.framerate
-
-			# x = np.arange(max_freq_range)
-			# y = np.abs(fft(data, max_freq_range))
-
-			x = np.linspace(0, params.framerate, data_length)
-			y = np.abs(fft(data))
-
-			csvobj = fs.get_csv_writer('data_fft_%s_%s.csv' % (fname, pad(count)), 'f', 'a')
-			writer = csvobj.writer
-			half = int(data_length/2)
-			[ 
-				writer.writerow([f, a]) 
-					for f,a in 
-						zip(
-							x[: half], 
-							y[: half]
-						)
-			]
-
-			csvobj.fd.close()
-
-			wav_file = 'audio_%s_%s.wav' % (fname, pad(count))
-			self.write_wav(wav_file, raw)
-
+		while True:			
+			cb(*q.get(), params, fname)
 			q.task_done()
 
 	def wait(self):
@@ -143,19 +116,48 @@ class AsyncPlayer:
 		self._event.wait()
 		self._q.join()
 
-	def write_wav(self,file, raw_data):
+	
+def main(file, bit_depth):
+
+	def write_wav(file, raw_data):
 		ws = wave.open(file, 'w')
 		ws.setnchannels(1)
 		ws.setframerate(44100)
 		ws.setsampwidth(2)
 		ws.writeframes(raw_data)
-		ws.close()
+		ws.close()	
 
-def main(file, bit_depth):
+	def process_raw(count, raw, params, fname):
+		data = np.fromstring(raw, bit_depth)
+		data_length = len(data)
+
+		max_freq_range = data_length if data_length > params.framerate else params.framerate
+
+		x = np.linspace(0, params.framerate, data_length)
+		y = np.abs(fft(data))
+
+		csvobj = fs.get_csv_writer('processed/data_fft_%s_%s.csv' % (fname, pad(count)), 'f', 'a')
+		writer = csvobj.writer
+		half = int(data_length/2)
+		[ 
+			writer.writerow([f, a]) 
+				for f,a in 
+					zip(
+						x[: half], 
+						y[: half]
+					)
+		]
+
+		csvobj.fd.close()
+
+		wav_file = 'processed/audio_%s_%s.wav' % (fname, pad(count))
+		write_wav(wav_file, raw)
+
 	player = AsyncPlayer(
 		file=file,
 		bit_depth=bit_depth,
 		sample_length=0.5,
+		callback=process_raw
 	)
 
 	player.play()

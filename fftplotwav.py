@@ -37,7 +37,7 @@ def main(file, bit_depth):
         csvobj = fs.get_csv_writer('data_fft.csv', 'f', 'a')
         fft_writer = csvobj.writer
         [fft_writer.writerow([f, a]) for f,a in zip(half_x, half_y)]
-        plt.semilogx(half_x, half_y)
+        # plt.semilogx(half_x, half_y)
         
     elif channels == 2:
         _len = len(data)/channels
@@ -52,15 +52,17 @@ def main(file, bit_depth):
         # right channel
         rdata = data[1::2]
 
-        # plt.plot(x, ldata)
-        # plt.plot(x, rdata)
-        plt.semilogx(x[:int(_len/2)], ldata[:int(_len/2)])
+        half_x = x[:int(_len/2)]
+        half_y = ldata[:int(_len/2)]
+        
+        # plt.semilogx(x[:int(_len/2)], ldata[:int(_len/2)])
         # plt.plot(x[:int(_len/2)], rdata[:int(_len/2)])
 
     else:
         show = False
 
     if show:
+        plt.semilogx(half_x, half_y)
         plt.title('Wave form\n%s' % file)
         plt.show()
 

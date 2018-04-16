@@ -7,12 +7,6 @@ import numpy as np
 def main():
 
 	files = os.listdir('processed')
-	evt = Event()	
-	def draw_cb(e):
-		evt.set()
-
-	# plt.connect('draw_event', draw_cb)
-	# plt.show(block=False)
 
 	for file in files:
 		base_name, ext = os.path.splitext(file)

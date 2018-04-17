@@ -30,4 +30,16 @@ def get_csv_reader(file):
 	o.reader = reader
 	o.fd = f
 	return o
-	
+
+def get_from_csv(file):
+	o = get_csv_reader(file)
+	r = o.reader
+	next(r)
+	x = []
+	y = []
+
+	for a,b in r:
+		x.append(float(a))
+		y.append(float(b))
+
+	return (x, y)	

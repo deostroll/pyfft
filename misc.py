@@ -97,8 +97,25 @@ def cycle(file, x, y):
 # sample_data = fs.get_from_csv(f)
 # x = []
 # y = []
-for a, b in zip(*sample_data):
-	x.append(float(a))
-	y.append(float(b))
+# for a, b in zip(*sample_data):
+# 	x.append(float(a))
+# 	y.append(float(b))
+
 
 # cycle(f, x, y)
+
+def get_data_from_csv(file):
+	data_raw = fs.get_from_csv(file)
+	x = []
+	y = []
+	for a, b in zip(*data_raw):
+		x.append(float(a))
+		y.append(float(b))
+	return file, x, y
+
+def write_data_to_csv(file, data, *headers):
+	 o = fs.get_csv_writer(file, *headers)
+	 w = o.writer
+	 [w.writerow(a) for a in data]
+	 o.fd.close()
+	 

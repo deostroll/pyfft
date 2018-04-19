@@ -45,17 +45,17 @@ def main(file, bit_depth):
     print('nothing done')
 
   if compute:
-    csv_obj = fs.get_csv_writer('data_fft.csv', 'f', 'a')
+    csv_obj = fs.get_csv_writer('samples/data_fft.csv', 'f', 'a')
     fft_writer = csv_obj.writer
     [fft_writer.writerow([f, a]) for f,a in zip(half_x, half_y)]
     file_base = path.basename(file)
     file_without_ext, ext = path.splitext(file_base)
-    unique_file_csv = 'data_fft_%s%s' % (file_without_ext, EXT_CSV)
+    unique_file_csv = 'samples/data_fft_%s%s' % (file_without_ext, EXT_CSV)
     csv_obj.fd.close()
-    fs.copy('data_fft.csv', unique_file_csv)
+    fs.copy('samples/data_fft.csv', unique_file_csv)
     max_y = max(half_y)
 
-    csv_obj = fs.get_csv_writer('fundamental_frequencies.csv', 'f', 'a', 'na')
+    csv_obj = fs.get_csv_writer('samples/fundamental_frequencies.csv', 'f', 'a', 'na')
     writer = csv_obj.writer
 
     fft_set = [ (f,a, a/max_y) for f, a, in zip(half_x, half_y)]
@@ -63,9 +63,9 @@ def main(file, bit_depth):
     for row in result:
       writer.writerow(row)
 
-    freq_unique_file = 'fundamental_frequencies_%s%s' % (file_without_ext, EXT_CSV)
+    freq_unique_file = 'samples/fundamental_frequencies_%s%s' % (file_without_ext, EXT_CSV)
     csv_obj.fd.close()
-    fs.copy('fundamental_frequencies.csv', freq_unique_file)
+    fs.copy('samples/fundamental_frequencies.csv', freq_unique_file)
 
     print('Fundamental Frequencies:', pformat(result, indent=2))
 

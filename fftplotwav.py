@@ -63,7 +63,7 @@ def main(file, bit_depth):
 
     if show:
         plt.semilogx(half_x, half_y)
-        plt.title('Wave form\n%s' % file)
+        plt.title('FFT plot: %s' % file)
         plt.show()
 
 

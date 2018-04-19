@@ -93,12 +93,12 @@ def cycle(file, x, y):
 	plt.show()
 	# print('done')
 
-f = 'samples/data_fft_KPAC_mono_snap.csv'
-sample_data = fs.get_from_csv(f)
-x = []
-y = []
+# f = 'samples/data_fft_KPAC_mono_snap.csv'
+# sample_data = fs.get_from_csv(f)
+# x = []
+# y = []
 for a, b in zip(*sample_data):
 	x.append(float(a))
 	y.append(float(b))
 
-cycle(f, x, y)
+# cycle(f, x, y)

@@ -118,4 +118,12 @@ def write_data_to_csv(file, data, *headers):
 	 w = o.writer
 	 [w.writerow(a) for a in data]
 	 o.fd.close()
+
+def get_normed(data):
+	x, y = data
+	
+	_x = x - np.min(x)
+	_y = y - np.min(y)
+
+	return ( _x, _y )
 	 

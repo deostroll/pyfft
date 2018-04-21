@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 import numpy as np
 import wave
 import sys
@@ -53,6 +53,7 @@ def main(file, bit_depth):
     unique_file_csv = 'samples/data_fft_%s%s' % (file_without_ext, EXT_CSV)
     csv_obj.fd.close()
     fs.copy('samples/data_fft.csv', unique_file_csv)
+    print('Saved fft:', unique_file_csv)
     max_y = max(half_y)
 
     csv_obj = fs.get_csv_writer('samples/fundamental_frequencies.csv', 'f', 'a', 'na')
@@ -66,8 +67,8 @@ def main(file, bit_depth):
     freq_unique_file = 'samples/fundamental_frequencies_%s%s' % (file_without_ext, EXT_CSV)
     csv_obj.fd.close()
     fs.copy('samples/fundamental_frequencies.csv', freq_unique_file)
-
-    print('Fundamental Frequencies:', pformat(result, indent=2))
+    print('Saved fundamentals:', freq_unique_file)
+    # print('Fundamental Frequencies:', pformat(result, indent=2))
 
 if __name__ == '__main__':
     file = sys.argv[1]

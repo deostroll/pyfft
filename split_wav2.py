@@ -1,3 +1,4 @@
+#!/usr/bin/python3
 import numpy as np
 import wave
 from pprint import pprint as pp
@@ -121,7 +122,7 @@ class AsyncPlayer:
 	
 def main(file, bit_depth):
 
-	THRESHOLD = 5400 # This is the lowest value observed for a snap
+	THRESHOLD = 6250 # This is the lowest value observed for a snap
 
 	def write_wav(file, raw_data):
 		ws = wave.open(file, 'w')
@@ -166,7 +167,7 @@ def main(file, bit_depth):
 	player = AsyncPlayer(
 		file=file,
 		bit_depth=bit_depth,
-		sample_length=0.175, # observed duration of snap is about 350 ms
+		sample_length=0.236, # observed duration of snap is about 350 ms
 		callback=process_raw
 	)
 	player.play()

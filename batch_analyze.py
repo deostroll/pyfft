@@ -4,87 +4,55 @@ import os
 import fileutils as fs
 import sys
 
-def analyze(file_fft, fund_fft):
-	fundamental = zip(fund_fft[0], fund_fft[1])
-	fundamental = list(fundamental)
-	x = file_fft[0]
-	y = file_fft[1]
-	len_x = len(x)
-	c = 0
-	ds1 = []
-	for f_x, f_y in fundamental:
-		while x[c] < f_x and c < len_x:
-			c = c + 1
+def filter_peaks(data):
+	x , y = data
+	max_y = max(y)
+	
+	x = np.array(x)
+	y = np.array(y)
 
-		if c == len_x : break # we have exhaused the dataset
+	z = y / max_y
 
-		ratio_b = x[c]/f_x
-		ratio_a = x[c-1]/f_x
-		if ratio_b == 1:
-			#! this matches
-			c_x = x[c]
-			c_y = y[c]
-			match_type = 'exact'
-		# else ratio_a >= .95 and ratio_b <= 1.05: # within a 5% range
-		else:
-			# interpolation necessary
-			x1 = x[c-1]
-			x2 = x[c]
-			y1 = y[c - 1]
-			y2 = y[c]
+	res = np.array([ (a, b) for a, b, c in zip(x,y,z) if c > 0.5 ])
 
-			slope = (y2 - y1)/(x2-x1)
+	return res[:,0], res[:1]
 
-			#interpolated amplitude
-			c_y = y1 + slope * (f_x - x1)
-			c_x = f_x
-			match_type = 'interpolated'
-		# else:
-		# 	print('Skipped:', x[c])
-		# 	continue
+def normed(data):
+	x, y = data
 
-		ds1.append((c_x, c_y, f_x, f_y, match_type))
-	assert len(ds1) == len(fundamental)
-	ds2 = []
-	for index in range(0, len(ds1), 2):
-		cf1, ca1, f1, a1, _ = ds1[index]
-		cf2, ca2, f2, a2, _ = ds1[index + 1]
+	_x = x - np.min(x)
+	_y = y - np.min(y)
 
-		ratio_test = ca1/ca2
-		ratio_actual = a1/a2
+	return (_x, _y)
 
-		final_ratio = ratio_test/ratio_actual
-		ds2.append(final_ratio > 0.95 and final_ratio < 1.05)
+def main(sample_fft):
 
-	true_count = 0
-	# [true_count = true_count + 1 for value in ds2 if value == True ]
-	for value in ds2:
-		if value:
-			true_count = true_count + 1
+	# begin - calculatin the normalized dataset for sample fft
+	sample_fft_data = fs.get_from_csv(sample_fft)
+	sample_fft_peaks = filter_peaks(sample_fft_data)
+	sample_fft_normed = normed(sample_fft_peaks)
+	sx, _ = sample_fft_normed
+	swidth = np.max(sx)
+	print(sample_fft)
+	print('\tWidth:', swidth)
 
-	print('Percent match:', true_count/len(ds2) * 100.0, '%')
-
-def main(fund_file):
+	# end - calculatin the normalized dataset for sample fft
 	files = os.listdir('processed')
+	s = 'data_fft_'
 	for file in files:
 		base_name, ext = os.path.splitext(file)
 		actual_file_path = os.path.join('processed', file)
-		fx = []
-		fy = []
-		o = fs.get_csv_reader(fund_file)
-		reader = o.reader
-		next(reader)
-
-		for a, b, _ in reader:
-			fx.append(float(a))
-			fy.append(float(b))
-
-		fund_data = (fx, fy)
-
-		if ext == ".csv":
-			print('Analyzing:', actual_file_path)
-			file_fft = fs.get_from_csv(actual_file_path)
-			analyze(file_fft, fund_data)
+		
+		if ext == ".csv" and base_name.startswith(s):
+			fft_data = fs.get_from_csv(actual_file_path)
+			fft_peaks = filter_peaks(fft_data)
+			fft_normed = normed(fft_peaks)
+			x = fft_normed[0]
+			width = np.max(x)
+			print(actual_file_path)
+			print('\tWidth:', width)
+			ratio = swidth/width if swidth > width else width/swidth
+			print('\tRatio:', ratio)
 
 if __name__ == '__main__':
 	main(sys.argv[1])

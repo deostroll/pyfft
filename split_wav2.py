@@ -134,16 +134,41 @@ def find_first_index(fn, data):
 
 def main(file, bit_depth):
 
-	THRESHOLD = 5625 # This is the lowest value observed for a snap
+	THRESHOLD = 10880 # This is the lowest value observed for a snap
+	CACHE_SIZE = 2
+	SAMPLE_LENGTH = .540 / 2
 
-	def write_wav(file, raw_data):
+	def write_wav(file, cache):
+		accumulator = lambda acc, item: acc + item[1]
+		
+		raw_data = reduce(
+			accumulator,
+			filter(lambda x: x[0], cache),
+			b''
+		)
+		
+		framerate = player.params.framerate
+		sample_length = player.sample_length
+		total_length = sample_length * 2
+
+		data = np.fromstring(raw_data, bit_depth)
+
+		indexes, = np.nonzero(np.abs(data) > THRESHOLD)
+
+		start = indexes[0] - int(framerate * sample_length)
+		end = start + int(framerate * total_length)
+
+		sub_sliced = data[start:end]
+
 		ws = wave.open(file, 'w')
 		ws.setnchannels(1)
 		ws.setframerate(44100)
 		ws.setsampwidth(2)
-		ws.writeframes(raw_data)
-		ws.close()	
+		# ws.writeframes(raw_data[desired_byte_start: desired_bytes_length])
+		ws.writeframes(sub_sliced.tobytes())
 
+		print('Saved:', file)
+		ws.close()	
 
 	def write_wav_index(file, raw_data, index, length):
 		
@@ -165,77 +190,66 @@ def main(file, bit_depth):
 	flags.capturing = False
 	flags.clip_count = 0
 	flags.cache = cache
+	flags.ready = False
+	flags.winding = False
 
 	def process_raw(count, raw):
 		data = np.fromstring(raw, bit_depth)
 		data_length = len(data)
 		cache = flags.cache
-		cache.append(raw)
-		fname = player.fname
-		
-		frame_length = player.frame_length
-		frame_length_by_2 = int(frame_length/2)
+		cache.append([False, raw])
+		# begin - processing
+		if not flags.ready and len(cache) == CACHE_SIZE:
+			flags.ready = True
+		elif flags.ready and not flags.capturing:
+			# begin - when not capturing
 
-		if not flags.capturing:
+			if len(cache) > CACHE_SIZE:
+				while len(cache) > CACHE_SIZE : cache.pop(0)
+			# analyze
+			data = np.fromstring(raw, bit_depth)
 
-			if len(cache) > 2:
-				# cache.pop(0) 	# remove the item from the left of queue and 
-				# maintain queue size = 2
-				while len(cache) > 2 : cache.pop(0)
-
-			index = find_first_index(lambda x: x > THRESHOLD, data)
+			index = find_first_index(lambda x: math.fabs(x) > THRESHOLD, data)
 
 			if index > -1:
+
+				cache[-1][0] = True
+				cache[-2][0] = True
+
 				flags.capturing = True
-				
-				if (index + 1) == frame_length_by_2:
-					flags.clip_flag = 0
-					flags.index = index					
-				elif index < frame_length_by_2:
-					flags.clip_flag = -1
-					flags.clip_index = index
-					print("clip_flag:", index)
-				else:
-					flags.clip_flag = 1
-					flags.clip_index = index
-					print("clip_flag:", index)
-					flags.set = False
-		else:
-			# write clip using the last two frames
-			# new_raw = ''.join(cache[1:])
 
+			# end - when not capturing
+		elif flags.ready and flags.capturing and not flags.winding:
+			# begin - when capturing, not winding
+			data = np.fromstring(raw, bit_depth)
+
+			index = find_first_index(lambda x: math.fabs(x) < THRESHOLD, data)
+
+			if index > -1:
+				cache[-1][0] = True
+				flags.winding = True
+			# end - when capturing, not winding
+		elif flags.ready and flags.capturing and flags.winding: 
+
+			# when ready, capturing, and winding!
 			
+			# begin - else block
+			cache[-1][0] = True
 
-			if flags.clip_flag == 0:
-				new_raw = reduce(lambda acc, item: acc + item, cache[1:], b'')
-				# clip_count = clip_count + 1
-				flags.clip_count = flags.clip_count + 1
-				wav_file = 'processed/audio_%s_%s_%s.wav' % (fname, pad(count), pad(flags.clip_count))					
-				write_wav(wav_file, new_raw)
-				flags.capturing = False
-			elif flags.clip_flag == -1:
-				new_raw = reduce(lambda acc, item: acc + item, cache, b'') #we are interested in the first slice
-				flags.clip_count = flags.clip_count + 1
-				wav_file = 'processed/audio_%s_%s_%s.wav' % (fname, pad(count), pad(flags.clip_count))
-				write_wav_index(wav_file, new_raw, (frame_length_by_2 + flags.clip_index), frame_length)
-				flags.capturing = False
-			elif flags.clip_flag == 1 and not flags.set:
-				print("next slice")
-				flags.set = True #we want to capture the next slice
-				flags.old_count = count
-			else:
-				new_raw = reduce(lambda acc, item: acc + item, cache[1:], b'')
-				flags.clip_count = flags.clip_count + 1
-				wav_file = 'processed/audio_%s_%s_%s.wav' % (fname, pad(flags.old_count), pad(flags.clip_count))
-				assert flags.clip_index > frame_length_by_2
-				write_wav_index(wav_file, new_raw, flags.clip_index, frame_length)
-				flags.capturing = False
-			# cache = []
+			flags.capturing = False
+			flags.winding = False
+			fname = player.fname
+			flags.clip_count = flags.clip_count + 1
+			wave_file = 'processed/audio_%s_%s_%s.wav' % (fname, pad(count), pad(flags.clip_count))
+			write_wav(wave_file, cache)
+			# end - else block
+		# end - processing
+		
 
 	player = AsyncPlayer(
 		file=file,
 		bit_depth=bit_depth,
-		sample_length=0.240, # observed duration of snap is about 350 ms
+		sample_length=SAMPLE_LENGTH, # observed duration of snap is about 350 ms
 		callback=process_raw
 	)
 	player.play()

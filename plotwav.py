@@ -38,5 +38,5 @@ else:
     show = False
 
 if show : 
-    plt.title('Wave form\n%s' % file)
+    plt.title('Wave form: %s' % file)
     plt.show()

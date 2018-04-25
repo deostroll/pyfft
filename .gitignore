@@ -8,3 +8,6 @@ __pycache__/
 *$py.class
 
 .vscode
+
+!data/clap_sample_540ms_16bit_mono.wav
+!data/test_clap_10s_16bit_mono.wav
